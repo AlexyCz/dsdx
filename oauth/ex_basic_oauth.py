@@ -21,18 +21,29 @@ def main():
     # Register client application
     client_id = "photo_app"
     client_secret = "secret_xyz"
-    redirect_uri = "https://photoapp.example.com/callback"
+    redirect_uri_list = ["https://photoapp.example.com/callback", "https://photo.example.com/mobile"]
+    invalid_redirect_uri = ""
 
     auth_server.register_client(
-        client_id=client_id, client_secret=client_secret, redirect_uris=[redirect_uri]
+        client_id=client_id, client_secret=client_secret, redirect_uris=redirect_uri_list
     )
 
-    # Create client
+    # Create client for main callback
     OAuthClient(
         env,
         client_id=client_id,
         client_secret=client_secret,
-        redirect_uri=redirect_uri,
+        redirect_uri=redirect_uri_list[0],
+        auth_server=auth_server,
+        resource_server=resource_server,
+    )
+
+    # Create client for invalid callback
+    OAuthClient(
+        env,
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=invalid_redirect_uri,
         auth_server=auth_server,
         resource_server=resource_server,
     )
