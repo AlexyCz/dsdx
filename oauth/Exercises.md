@@ -63,6 +63,105 @@ UMMMMMMMM…
 
 Idea: In **`client_credentials.py` L**106 of the invalid section of the control flow, we attempt retries (while loop true) with exponential timings of sleep between with a max of 3 retries per attempt. 3 at the moment is arbitrary, and a conservative limit to not overload the auth request queue.
 
+  >A standard, well-documented exponential backoff for token acquisition uses: an initial delay, an exponential multiplier per retry, optional random jitter, a maximum delay cap, and a maximum retry count (or overall timeout). Use jitter to avoid thundering-herd. Common variants: full jitter, equal jitter, and decorrelated jitter (recommended by AWS).
+  
+  Example (clear, language-agnostic algorithm + Go and Python examples):
+  
+  Algorithm (parameters)
+  - initial = base delay (e.g., 500 ms)
+  - factor = multiplier (usually 2)
+  - maxDelay = cap (e.g., 30 s)
+  - maxRetries = maximum attempts (e.g., 5)
+  - jitter = true (use randomized jitter)
+  - backoff(i) for attempt i (0-based) = min(maxDelay, initial * factor^i) then apply jitter variant
+  
+  Jitter variants
+  - Full jitter: sleep = random(0, backoff(i))
+  - Equal jitter: sleep = backoff(i)/2 + random(0, backoff(i)/2)
+  - Decorrelated jitter (per attempt): sleep = min(maxDelay, random(initial, previousSleep * 3))
+  
+  Recommended: use Full jitter or Decorrelated jitter (AWS SDK recommends decorrelated or full jitter to reduce spikes).
+  
+  Go example (synchronous token fetch with full jitter)
+  ```go
+  import (
+      "math"
+      "math/rand"
+      "time"
+      "errors"
+  )
+  
+  func acquireTokenWithBackoff(fetch func() (string, error)) (string, error) {
+      initial := 500 * time.Millisecond
+      factor := 2.0
+      maxDelay := 30 * time.Second
+      maxRetries := 5
+  
+      var lastErr error
+      for i := 0; i < maxRetries; i++ {
+          tok, err := fetch()
+          if err == nil {
+              return tok, nil
+          }
+          lastErr = err
+  
+          // compute exponential backoff
+          pow := math.Pow(factor, float64(i))
+          backoff := time.Duration(float64(initial) * pow)
+          if backoff > maxDelay {
+              backoff = maxDelay
+          }
+  
+          // full jitter
+          sleep := time.Duration(rand.Int63n(int64(backoff)))
+          time.Sleep(sleep)
+      }
+      return "", errors.New("token acquisition failed: " + lastErr.Error())
+  }
+  ```
+  
+  Python example (with decorrelated jitter)
+  ```python
+  import random
+  import time
+  
+  def acquire_token_with_backoff(fetch):
+      initial = 0.5          # seconds
+      max_delay = 30.0       # seconds
+      max_retries = 5
+  
+      sleep = initial
+      last_exc = None
+      for attempt in range(max_retries):
+          try:
+              return fetch()
+          except Exception as e:
+              last_exc = e
+              # decorrelated jitter
+              sleep = min(max_delay, random.uniform(initial, sleep * 3))
+              time.sleep(sleep)
+      raise RuntimeError("token acquisition failed") from last_exc
+  ```
+  
+  Integration notes
+  - Retry only on transient/network or 5xx errors, not on client errors (401/400) except where token endpoint signals transient failure.
+  - Respect Retry-After header when present (use that value before exponential delay).
+  - Use a circuit-breaker or overall timeout for long-running callers.
+  - Persist minimal state for decorrelated jitter (previous sleep).
+  - Seed random generator in long-running processes.
+  
+  Defaults to use
+  - initial: 200–1000 ms
+  - factor: 2
+  - maxDelay: 15–60 s
+  - maxRetries: 3–7
+  
+  That pattern is widely used and recommended (with jitter) for robust token acquisition.
+>
+
+Implementation notes:
+  We have our main private method `_acquire_token()`. We have a single failure token response check. To integrate exponential backoff, I can begin the algorithm at L96, after creating the request object. We enter the loop for max retries. We won't raise an exception, we'll keep the output currently in place on L107.
+
 ### Five:
 
 > Access tokens expire (after 60 seconds in the simulation).
