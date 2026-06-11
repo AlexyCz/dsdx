@@ -2,7 +2,7 @@
 
 from asimpy import Process, Queue, FirstOf
 from typing import Dict, List
-from oauth_types import (
+from oauth.oauth_types import (
     AuthorizationRequest,
     AuthorizationResponse,
     TokenRequest,

@@ -38,6 +38,10 @@ If removed, we could create an indefinite amount of authorization tokens for the
 
 In `oauth/oauth_client.py` after L51, we call `exchange_code_for_token` once more with the exact same auth code. Response should be error after check in the auth server in L158.
 
+Reference log output L20 in `oauth/exercise_two.out`
+
+Final: I have created a unit test for the `_validate_token_request` method in the `AuthorizationServer` class. Reference `dsdx/tests/test_authorization_server.py` -> `test_validate_token_request`
+
 ### Three:
 
 > Trace through the PKCE flow for this interception scenario:

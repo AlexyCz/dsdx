@@ -17,7 +17,7 @@ classifiers = [
 dependencies = [
     "asimpy>=0.10.0",
     "mccole>=2.13.1",
-    "ruff>=0.15.8",
+    "ruff>=0.15.8"
 ]
 
 [project.urls]
@@ -29,11 +29,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/dsdx"]
+packages = ["oauth"]
 
 [dependency-groups]
 dev = [
-    "build>=1.4.0"
+    "build>=1.4.0",
+    "pytest",
+    "pytest-asyncio"
 ]
 
 [tool.mccole]
