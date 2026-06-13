@@ -15,6 +15,8 @@ This is simpler than the authorization code flow, but the client_secret must
 be protected carefully—it acts as the application's password.
 """
 
+import random
+
 from asimpy import Process, Queue
 from typing import Optional
 
@@ -62,6 +64,12 @@ class ClientCredentialsClient(Process):
         self.access_token: Optional[str] = None
         self.token_expiry: float = 0.0
 
+        # Exponential backoff parameters
+        self.initial_delay = 0.5
+        self.exp_factor = 2
+        self.max_delay = 30.0
+        self.max_retries = 5
+
         print(
             f"[{self.now:.1f}] M2M client '{client_id}' started "
             f"(scopes: {self.scopes})"
@@ -86,6 +94,8 @@ class ClientCredentialsClient(Process):
         """Request a token directly from the token endpoint."""
         print(f"[{self.now:.1f}] M2M client: Requesting token with client credentials")
 
+        sleep = self.initial_delay
+
         response_queue: Queue = Queue(self._env)
         request = ClientCredentialsRequest(
             client_id=self.client_id,
@@ -93,18 +103,25 @@ class ClientCredentialsClient(Process):
             scope=self.scopes,
             response_queue=response_queue,
         )
-        await self.auth_server_token_queue.put(request)
-        response = await response_queue.get()
+        
+        for _ in range(self.max_retries):
+            await self.auth_server_token_queue.put(request)
+            response = await response_queue.get()
+            
+            if hasattr(response, "access_token") and response.access_token:
+                self.access_token = response.access_token
+                self.token_expiry = self.now + 60.0   # tokens typically last 1 hour
+                print(
+                    f"[{self.now:.1f}] M2M client: Token acquired "
+                    f"(expires at {self.token_expiry:.0f})"
+                )
+                return
+            else:
+                sleep = min(self.max_delay, random.uniform(self.initial_delay, sleep * self.exp_factor))
+                print(f"[{self.now:.1f}] M2M client: Token request failed; Retrying in {sleep}")
+                await self.timeout(sleep)
 
-        if hasattr(response, "access_token") and response.access_token:
-            self.access_token = response.access_token
-            self.token_expiry = self.now + 60.0   # tokens typically last 1 hour
-            print(
-                f"[{self.now:.1f}] M2M client: Token acquired "
-                f"(expires at {self.token_expiry:.0f})"
-            )
-        else:
-            print(f"[{self.now:.1f}] M2M client: Token request failed")
+        print(f"[{self.now:.1f}] M2M client: Token request failed after max retries.")
 
     async def _make_api_call(self) -> None:
         """Make an API call, refreshing the token if it has expired."""

@@ -51,7 +51,7 @@ What happens if the attacker sends the code with a wrong verifier?
 Verify by modifying `PKCEClient._exchange_code` to send a tampered verifier.
 > 
 
-UMMMMMMMM…
+*TODO*
 
 ### Four:
 
@@ -82,45 +82,7 @@ Idea: In **`client_credentials.py` L**106 of the invalid section of the control 
   
   Recommended: use Full jitter or Decorrelated jitter (AWS SDK recommends decorrelated or full jitter to reduce spikes).
   
-  Go example (synchronous token fetch with full jitter)
-  ```go
-  import (
-      "math"
-      "math/rand"
-      "time"
-      "errors"
-  )
-  
-  func acquireTokenWithBackoff(fetch func() (string, error)) (string, error) {
-      initial := 500 * time.Millisecond
-      factor := 2.0
-      maxDelay := 30 * time.Second
-      maxRetries := 5
-  
-      var lastErr error
-      for i := 0; i < maxRetries; i++ {
-          tok, err := fetch()
-          if err == nil {
-              return tok, nil
-          }
-          lastErr = err
-  
-          // compute exponential backoff
-          pow := math.Pow(factor, float64(i))
-          backoff := time.Duration(float64(initial) * pow)
-          if backoff > maxDelay {
-              backoff = maxDelay
-          }
-  
-          // full jitter
-          sleep := time.Duration(rand.Int63n(int64(backoff)))
-          time.Sleep(sleep)
-      }
-      return "", errors.New("token acquisition failed: " + lastErr.Error())
-  }
-  ```
-  
-  Python example (with decorrelated jitter)
+  With decorrelated jitter
   ```python
   import random
   import time
@@ -142,25 +104,12 @@ Idea: In **`client_credentials.py` L**106 of the invalid section of the control 
               time.sleep(sleep)
       raise RuntimeError("token acquisition failed") from last_exc
   ```
-  
-  Integration notes
-  - Retry only on transient/network or 5xx errors, not on client errors (401/400) except where token endpoint signals transient failure.
-  - Respect Retry-After header when present (use that value before exponential delay).
-  - Use a circuit-breaker or overall timeout for long-running callers.
-  - Persist minimal state for decorrelated jitter (previous sleep).
-  - Seed random generator in long-running processes.
-  
-  Defaults to use
-  - initial: 200–1000 ms
-  - factor: 2
-  - maxDelay: 15–60 s
-  - maxRetries: 3–7
-  
-  That pattern is widely used and recommended (with jitter) for robust token acquisition.
->
 
 Implementation notes:
   We have our main private method `_acquire_token()`. We have a single failure token response check. To integrate exponential backoff, I can begin the algorithm at L96, after creating the request object. We enter the loop for max retries. We won't raise an exception, we'll keep the output currently in place on L107.
+
+*What should the retry limit be, and why?*
+A max retry limit is in place to not have an indefinite request loop (expand...). Currently 5 is in place.
 
 ### Five:
 
@@ -173,3 +122,22 @@ Implementation notes:
 > 
 
 Idea, create request flow for simultaneous new and refresh token. When auth token is expired, check that the client has an associated refresh token that is valid, if true initiate creation of new auth token. Else, return auth error of expired tokens.
+
+Control flow:
+  -> `oauth_client`: 
+    -> `access_resource()`
+      -> failure flow: `access_resource()` will return response
+    -> `run()`: check for `response.error` == `token_expired`
+    -> new attr `self.refresh_token`
+    -> new `exchange_refresh_token_for_token()`, parameters will be `self.refresh_token`, return `TokenResponse`
+      -> token response check as is currently in place for refresh token failure.
+    -> Expand `TokenRequest`: new attr `refresh_token`
+    -> new resource request with new refresh token.
+  -> `authorization_server`: `_validate_token_request()` add return type `RefreshToken`
+    -> check for `request.code` presence for auth_code validation flow
+    -> check for `request.refresh_token` presence for refresh_token validation flow
+    -> `handle_token_request()` will check object type AuthorizationCode or RefreshToken
+      -> if code, go through `_issue_access_token_via_code()`, a rename of `_issue_access_token()`
+        -> also create `RefreshToken` and add to `self.refresh_tokens`
+        -> add new refresh token to `TokenResponse`
+      -> if refresh token, create new `AccessToken` and `TokenResponse` with new token and current refresh token.
