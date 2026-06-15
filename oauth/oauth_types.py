@@ -45,11 +45,12 @@ class AuthorizationResponse:
 class TokenRequest:
     """Request to exchange code for access token."""
 
-    code: str
     client_id: str
     client_secret: str
     redirect_uri: str
     response_queue: Queue
+    code: str | None = None
+    refresh_token: str | None = None
 
     def __str__(self):
         return f"TokenRequest(client={self.client_id})"

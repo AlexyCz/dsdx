@@ -4,6 +4,7 @@ from asimpy import Process, Queue
 from typing import Optional, List
 from oauth_types import (
     AuthorizationRequest,
+    ResourceResponse,
     TokenRequest,
     ResourceRequest,
     TokenResponse,
@@ -32,6 +33,7 @@ class OAuthClient(Process):
         self.resource_server = resource_server
 
         self.access_token: Optional[str] = None
+        self.refresh_token: Optional[str] = None
 
         print(f"[{self.now:.1f}] Client '{client_id}' started")
     # mccole: /init
@@ -55,18 +57,43 @@ class OAuthClient(Process):
             return
 
         self.access_token = token_response.access_token
+        self.refresh_token = token_response.refresh_token
         print(f"[{self.now:.1f}] Client: Got access token!")
 
         # Step 3: Access protected resources
         await self.timeout(0.5)
-        await self.access_resource("/api/profile")
+        resource_response = await self.access_resource("/api/profile")
+
+        if resource_response and resource_response.error == "token_expired":
+            token_response = await self.request_access_token_with_refresh_token()
+
+            if not token_response or token_response.token_type == "error":
+                print(f"[{self.now:.1f}] Client: Token exchange failed")
+                return
+
+            self.access_token = token_response.access_token
+            print(f"[{self.now:.1f}] Client: Got new access token!")
+
+            resource_response = await self.access_resource("/api/profile")
 
         await self.timeout(0.5)
-        await self.access_resource("/api/photos")
+        resource_response = await self.access_resource("/api/photos")
+
+        if resource_response and resource_response.error == "token_expired":
+            token_response = await self.request_access_token_with_refresh_token()
+
+            if not token_response or token_response.token_type == "error":
+                print(f"[{self.now:.1f}] Client: Token exchange failed")
+                return
+
+            self.access_token = token_response.access_token
+            print(f"[{self.now:.1f}] Client: Got new access token!")
+
+            resource_response = await self.access_resource("/api/photos")
 
         # Try accessing resource without permission
         await self.timeout(0.5)
-        await self.access_resource("/api/messages")
+        _ = await self.access_resource("/api/messages")
     # mccole: /run
 
     # mccole: request_auth
@@ -118,8 +145,29 @@ class OAuthClient(Process):
         return response
     # mccole: /exchange_code
 
+
+    async def request_access_token_with_refresh_token(self,) -> Optional[TokenResponse]:
+        """ Requests new access token with stored client refresh token """
+        print(f"[{self.now:.1f}] Client: Requesting new access token with refresh token")
+
+        response_queue = Queue(self._env)
+
+        request = TokenRequest(
+            refresh_token=self.refresh_token,
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            redirect_uri=self.redirect_uri,
+            response_queue=response_queue,
+        )
+
+        await self.auth_server.token_queue.put(request)
+        response = await response_queue.get()
+
+        return response
+        
+        
     # mccole: access_resource
-    async def access_resource(self, path: str):
+    async def access_resource(self, path: str) -> Optional[ResourceResponse]:
         """Step 3: Access protected resource with token."""
         print(f"[{self.now:.1f}] Client: Accessing {path}")
 
@@ -142,4 +190,5 @@ class OAuthClient(Process):
             print(f"[{self.now:.1f}] Client: Success! Data: {response.data}")
         else:
             print(f"[{self.now:.1f}] Client: Failed - {response.error}")
+            return response
     # mccole: /access_resource

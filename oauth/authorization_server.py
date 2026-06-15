@@ -5,6 +5,7 @@ from typing import Dict, List
 from oauth.oauth_types import (
     AuthorizationRequest,
     AuthorizationResponse,
+    RefreshToken,
     TokenRequest,
     TokenResponse,
     AuthorizationCode,
@@ -123,18 +124,25 @@ class AuthorizationServer(Process):
         """Exchange authorization code for access token."""
         print(f"[{self.now:.1f}] AuthServer: Received {request}")
 
-        auth_code = await self._validate_token_request(request)
-        if auth_code is None:
+        validation_result = await self._validate_token_request(request)
+        if validation_result is None:
             return
 
-        await self._issue_access_token(request, auth_code)
+        if isinstance(validation_result, AuthorizationCode):
+            await self._issue_access_token_via_code(request, validation_result)
+
+        if isinstance(validation_result, RefreshToken):
+            await self._issue_access_token_via_refresh_token(request, validation_result)
+
     # mccole: /handle_token
 
     # mccole: validate_token
     async def _validate_token_request(
         self, request: TokenRequest
-    ) -> AuthorizationCode | None:
-        """Validate client credentials and authorization code; return code or None."""
+    ) -> AuthorizationCode | RefreshToken | None:
+        """Validate client credentials and authorization code if requesting via code; 
+           Validate client credentials and refresh token if requesting via refresh token;
+           return code or None."""
         error = TokenResponse(access_token="", token_type="error")
 
         if request.client_id not in self.clients:
@@ -148,33 +156,60 @@ class AuthorizationServer(Process):
             await request.response_queue.put(error)
             return None
 
-        if request.code not in self.auth_codes:
-            print(f"[{self.now:.1f}] AuthServer: Invalid authorization code")
-            await request.response_queue.put(error)
-            return None
 
-        auth_code = self.auth_codes[request.code]
+        if request.code:
+            if request.code not in self.auth_codes:
+                print(f"[{self.now:.1f}] AuthServer: Invalid authorization code")
+                await request.response_queue.put(error)
+                return None
+    
+            auth_code = self.auth_codes[request.code]
+    
+            if not auth_code.is_valid(self.now):
+                print(f"[{self.now:.1f}] AuthServer: Authorization code expired or used")
+                await request.response_queue.put(error)
+                return None
+    
+            if auth_code.client_id != request.client_id:
+                print(f"[{self.now:.1f}] AuthServer: Code issued to different client")
+                await request.response_queue.put(error)
+                return None
+    
+            if auth_code.redirect_uri != request.redirect_uri:
+                print(f"[{self.now:.1f}] AuthServer: Redirect URI mismatch")
+                await request.response_queue.put(error)
+                return None
 
-        if not auth_code.is_valid(self.now):
-            print(f"[{self.now:.1f}] AuthServer: Authorization code expired or used")
-            await request.response_queue.put(error)
-            return None
+            return auth_code
 
-        if auth_code.client_id != request.client_id:
-            print(f"[{self.now:.1f}] AuthServer: Code issued to different client")
-            await request.response_queue.put(error)
-            return None
+        else:
+            if request.refresh_token not in self.refresh_tokens:
+                print(f"[{self.now:.1f}] AuthServer: Invalid refresh token")
+                await request.response_queue.put(error)
+                return None
+    
+            refresh_token = self.refresh_token[request.refresh_token]
+    
+            if not refresh_token.is_valid(self.now):
+                print(f"[{self.now:.1f}] AuthServer: Refresh token is expired")
+                await request.response_queue.put(error)
+                return None
+    
+            if refresh_token.client_id != request.client_id:
+                print(f"[{self.now:.1f}] AuthServer: Refresh token issued to different client")
+                await request.response_queue.put(error)
+                return None
+    
+            if refresh_token.redirect_uri != request.redirect_uri:
+                print(f"[{self.now:.1f}] AuthServer: Redirect URI mismatch")
+                await request.response_queue.put(error)
+                return None
 
-        if auth_code.redirect_uri != request.redirect_uri:
-            print(f"[{self.now:.1f}] AuthServer: Redirect URI mismatch")
-            await request.response_queue.put(error)
-            return None
-
-        return auth_code
+            return refresh_token
     # mccole: /validate_token
 
     # mccole: issue_token
-    async def _issue_access_token(
+    async def _issue_access_token_via_code(
         self, request: TokenRequest, auth_code: AuthorizationCode
     ):
         """Mark the code used, generate an access token, store it, and send it."""
@@ -189,13 +224,48 @@ class AuthorizationServer(Process):
         )
         self.access_tokens[access_token] = token
 
+        refresh_token = generate_token("refresh")
+        token = RefreshToken(
+            token=refresh_token,
+            client_id=request.client_id,
+            scope=auth_code.scope,
+            expires_at=self.now + 216000,
+        )
+        self.refresh_tokens[refresh_token] = token
+
         response = TokenResponse(
             access_token=access_token,
             token_type="Bearer",
             expires_in=3600,
+            refresh_token=refresh_token,
             scope=auth_code.scope,
         )
         await request.response_queue.put(response)
 
         print(f"[{self.now:.1f}] AuthServer: Issued access token")
     # mccole: /issue_token
+
+    async def _issue_access_token_via_refresh_token(
+        self, request: TokenRequest, refresh_token: RefreshToken
+    ):
+        """ Generate new access token, store it, and sent it."""
+
+        access_token = generate_token("access")
+        token = AccessToken(
+            token=access_token,
+            client_id=request.client_id,
+            scope=refresh_token.scope,
+            expires_at=self.now + 3600,  # 1 hour expiry
+        )
+        self.access_tokens[access_token] = token
+
+        response = TokenResponse(
+            access_token=access_token,
+            token_type="Bearer",
+            expires_in=3600,
+            refresh_token=request.refresh_token,
+            scope=refresh_token.scope,
+        )
+        await request.response_queue.put(response)
+
+        print(f"[{self.now:.1f}] AuthServer: Issued access token")
