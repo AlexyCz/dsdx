@@ -38,6 +38,7 @@ class AuthorizationServer(Process):
         }
 
         print(f"[{self.now:.1f}] Authorization Server started")
+
     # mccole: /init
 
     # mccole: register
@@ -50,6 +51,7 @@ class AuthorizationServer(Process):
             "redirect_uris": redirect_uris,
         }
         print(f"[{self.now:.1f}] Registered client: {client_id}")
+
     # mccole: /register
 
     # mccole: run
@@ -65,6 +67,7 @@ class AuthorizationServer(Process):
                 await self.handle_authorization_request(request)
             elif name == "token":
                 await self.handle_token_request(request)
+
     # mccole: /run
 
     # mccole: handle_auth
@@ -83,6 +86,7 @@ class AuthorizationServer(Process):
         print(f"[{self.now:.1f}] AuthServer: User granted permissions: {request.scope}")
 
         await self._issue_authorization_code(request)
+
     # mccole: /handle_auth
 
     # mccole: validate_auth
@@ -98,6 +102,7 @@ class AuthorizationServer(Process):
             return False
 
         return True
+
     # mccole: /validate_auth
 
     # mccole: issue_code
@@ -117,6 +122,7 @@ class AuthorizationServer(Process):
         await request.response_queue.put(response)
 
         print(f"[{self.now:.1f}] AuthServer: Issued authorization code")
+
     # mccole: /issue_code
 
     # mccole: handle_token
@@ -140,9 +146,9 @@ class AuthorizationServer(Process):
     async def _validate_token_request(
         self, request: TokenRequest
     ) -> AuthorizationCode | RefreshToken | None:
-        """Validate client credentials and authorization code if requesting via code; 
-           Validate client credentials and refresh token if requesting via refresh token;
-           return code or None."""
+        """Validate client credentials and authorization code if requesting via code;
+        Validate client credentials and refresh token if requesting via refresh token;
+        return code or None."""
         error = TokenResponse(access_token="", token_type="error")
 
         if request.client_id not in self.clients:
@@ -156,25 +162,26 @@ class AuthorizationServer(Process):
             await request.response_queue.put(error)
             return None
 
-
         if request.code:
             if request.code not in self.auth_codes:
                 print(f"[{self.now:.1f}] AuthServer: Invalid authorization code")
                 await request.response_queue.put(error)
                 return None
-    
+
             auth_code = self.auth_codes[request.code]
-    
+
             if not auth_code.is_valid(self.now):
-                print(f"[{self.now:.1f}] AuthServer: Authorization code expired or used")
+                print(
+                    f"[{self.now:.1f}] AuthServer: Authorization code expired or used"
+                )
                 await request.response_queue.put(error)
                 return None
-    
+
             if auth_code.client_id != request.client_id:
                 print(f"[{self.now:.1f}] AuthServer: Code issued to different client")
                 await request.response_queue.put(error)
                 return None
-    
+
             if auth_code.redirect_uri != request.redirect_uri:
                 print(f"[{self.now:.1f}] AuthServer: Redirect URI mismatch")
                 await request.response_queue.put(error)
@@ -187,25 +194,28 @@ class AuthorizationServer(Process):
                 print(f"[{self.now:.1f}] AuthServer: Invalid refresh token")
                 await request.response_queue.put(error)
                 return None
-    
+
             refresh_token = self.refresh_token[request.refresh_token]
-    
+
             if not refresh_token.is_valid(self.now):
                 print(f"[{self.now:.1f}] AuthServer: Refresh token is expired")
                 await request.response_queue.put(error)
                 return None
-    
+
             if refresh_token.client_id != request.client_id:
-                print(f"[{self.now:.1f}] AuthServer: Refresh token issued to different client")
+                print(
+                    f"[{self.now:.1f}] AuthServer: Refresh token issued to different client"
+                )
                 await request.response_queue.put(error)
                 return None
-    
+
             if refresh_token.redirect_uri != request.redirect_uri:
                 print(f"[{self.now:.1f}] AuthServer: Redirect URI mismatch")
                 await request.response_queue.put(error)
                 return None
 
             return refresh_token
+
     # mccole: /validate_token
 
     # mccole: issue_token
@@ -243,12 +253,13 @@ class AuthorizationServer(Process):
         await request.response_queue.put(response)
 
         print(f"[{self.now:.1f}] AuthServer: Issued access token")
+
     # mccole: /issue_token
 
     async def _issue_access_token_via_refresh_token(
         self, request: TokenRequest, refresh_token: RefreshToken
     ):
-        """ Generate new access token, store it, and sent it."""
+        """Generate new access token, store it, and sent it."""
 
         access_token = generate_token("access")
         token = AccessToken(

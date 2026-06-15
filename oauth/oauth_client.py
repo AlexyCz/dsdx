@@ -36,6 +36,7 @@ class OAuthClient(Process):
         self.refresh_token: Optional[str] = None
 
         print(f"[{self.now:.1f}] Client '{client_id}' started")
+
     # mccole: /init
 
     # mccole: run
@@ -94,6 +95,7 @@ class OAuthClient(Process):
         # Try accessing resource without permission
         await self.timeout(0.5)
         _ = await self.access_resource("/api/messages")
+
     # mccole: /run
 
     # mccole: request_auth
@@ -122,6 +124,7 @@ class OAuthClient(Process):
 
         print(f"[{self.now:.1f}] Client: Received authorization code")
         return response.code
+
     # mccole: /request_auth
 
     # mccole: exchange_code
@@ -143,12 +146,16 @@ class OAuthClient(Process):
         response = await response_queue.get()
 
         return response
+
     # mccole: /exchange_code
 
-
-    async def request_access_token_with_refresh_token(self,) -> Optional[TokenResponse]:
-        """ Requests new access token with stored client refresh token """
-        print(f"[{self.now:.1f}] Client: Requesting new access token with refresh token")
+    async def request_access_token_with_refresh_token(
+        self,
+    ) -> Optional[TokenResponse]:
+        """Requests new access token with stored client refresh token"""
+        print(
+            f"[{self.now:.1f}] Client: Requesting new access token with refresh token"
+        )
 
         response_queue = Queue(self._env)
 
@@ -164,8 +171,7 @@ class OAuthClient(Process):
         response = await response_queue.get()
 
         return response
-        
-        
+
     # mccole: access_resource
     async def access_resource(self, path: str) -> Optional[ResourceResponse]:
         """Step 3: Access protected resource with token."""
@@ -191,4 +197,5 @@ class OAuthClient(Process):
         else:
             print(f"[{self.now:.1f}] Client: Failed - {response.error}")
             return response
+
     # mccole: /access_resource

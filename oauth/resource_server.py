@@ -30,6 +30,7 @@ class ResourceServer(Process):
         }
 
         print(f"[{self.now:.1f}] Resource Server started")
+
     # mccole: /init
 
     # mccole: run
@@ -38,6 +39,7 @@ class ResourceServer(Process):
         while True:
             request = await self.resource_queue.get()
             await self.handle_resource_request(request)
+
     # mccole: /run
 
     # mccole: handle_resource
@@ -57,12 +59,11 @@ class ResourceServer(Process):
         await request.response_queue.put(
             ResourceResponse(success=True, data=resource["data"])
         )
+
     # mccole: /handle_resource
 
     # mccole: validate_token
-    async def _validate_token(
-        self, request: ResourceRequest
-    ) -> AccessToken | None:
+    async def _validate_token(self, request: ResourceRequest) -> AccessToken | None:
         """Check that the token exists and has not expired; send error if not."""
         if request.access_token not in self.auth_server.access_tokens:
             print(f"[{self.now:.1f}] ResourceServer: Invalid token")
@@ -81,6 +82,7 @@ class ResourceServer(Process):
             return None
 
         return token
+
     # mccole: /validate_token
 
     # mccole: check_access
@@ -107,4 +109,5 @@ class ResourceServer(Process):
             return None
 
         return resource
+
     # mccole: /check_access

@@ -12,6 +12,8 @@ def generate_token(prefix: str = "tok") -> str:
     """Generate a random token."""
     random_part = "".join(random.choices(string.ascii_letters + string.digits, k=16))
     return f"{prefix}_{random_part}"
+
+
 # mccole: /token_func
 
 
@@ -94,6 +96,8 @@ class ResourceResponse:
         if self.success:
             return "ResourceResponse(success=True)"
         return f"ResourceResponse(error={self.error})"
+
+
 # mccole: /message_types
 
 
@@ -126,6 +130,8 @@ class AccessToken:
     def is_valid(self, now: float) -> bool:
         """Check if token is still valid."""
         return now < self.expires_at
+
+
 # mccole: /internal_types
 
 
@@ -141,4 +147,6 @@ class RefreshToken:
 
     def is_valid(self, now: float) -> bool:
         return now < self.expires_at
+
+
 # mccole: /refresh

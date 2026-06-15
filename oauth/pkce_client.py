@@ -68,6 +68,8 @@ def compute_code_challenge(verifier: str) -> str:
 def verify_challenge(verifier: str, stored_challenge: str) -> bool:
     """Verify that the verifier matches the stored challenge."""
     return compute_code_challenge(verifier) == stored_challenge
+
+
 # mccole: /pkce_helpers
 
 
@@ -144,8 +146,8 @@ class PKCEClient(Process):
             response_queue=response_queue,
         )
         # Attach PKCE fields (would be query parameters in real HTTP).
-        request.code_challenge = challenge          # type: ignore[attr-defined]
-        request.code_challenge_method = "S256"      # type: ignore[attr-defined]
+        request.code_challenge = challenge  # type: ignore[attr-defined]
+        request.code_challenge_method = "S256"  # type: ignore[attr-defined]
 
         await self.auth_server_auth_queue.put(request)
         response = await response_queue.get()
@@ -165,12 +167,12 @@ class PKCEClient(Process):
         request = TokenRequest(
             code=code,
             client_id=self.client_id,
-            client_secret="",        # Public clients have no secret.
+            client_secret="",  # Public clients have no secret.
             redirect_uri=self.redirect_uri,
             response_queue=response_queue,
         )
         # Attach the code verifier — the server will hash it and compare.
-        request.code_verifier = self._code_verifier   # type: ignore[attr-defined]
+        request.code_verifier = self._code_verifier  # type: ignore[attr-defined]
 
         await self.auth_server_token_queue.put(request)
         response: TokenResponse = await response_queue.get()
@@ -180,4 +182,6 @@ class PKCEClient(Process):
             return None
 
         return response.access_token
+
+
 # mccole: /pkce_client

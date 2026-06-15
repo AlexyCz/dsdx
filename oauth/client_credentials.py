@@ -37,6 +37,8 @@ class ClientCredentialsRequest:
     client_secret: str
     scope: list[str]
     response_queue: Queue
+
+
 # mccole: /cc_token_request
 
 
@@ -71,18 +73,14 @@ class ClientCredentialsClient(Process):
         self.max_retries = 5
 
         print(
-            f"[{self.now:.1f}] M2M client '{client_id}' started "
-            f"(scopes: {self.scopes})"
+            f"[{self.now:.1f}] M2M client '{client_id}' started (scopes: {self.scopes})"
         )
 
     async def run(self) -> None:
         """Acquire a token and use it; refresh when it expires."""
         await self._acquire_token()
         if self.access_token:
-            print(
-                f"[{self.now:.1f}] M2M client: Token acquired, "
-                f"making API calls..."
-            )
+            print(f"[{self.now:.1f}] M2M client: Token acquired, making API calls...")
             # Simulate periodic API calls.
             for _ in range(3):
                 await self.timeout(1.0)
@@ -103,22 +101,27 @@ class ClientCredentialsClient(Process):
             scope=self.scopes,
             response_queue=response_queue,
         )
-        
+
         for _ in range(self.max_retries):
             await self.auth_server_token_queue.put(request)
             response = await response_queue.get()
-            
+
             if hasattr(response, "access_token") and response.access_token:
                 self.access_token = response.access_token
-                self.token_expiry = self.now + 60.0   # tokens typically last 1 hour
+                self.token_expiry = self.now + 60.0  # tokens typically last 1 hour
                 print(
                     f"[{self.now:.1f}] M2M client: Token acquired "
                     f"(expires at {self.token_expiry:.0f})"
                 )
                 return
             else:
-                sleep = min(self.max_delay, random.uniform(self.initial_delay, sleep * self.exp_factor))
-                print(f"[{self.now:.1f}] M2M client: Token request failed; Retrying in {sleep}")
+                sleep = min(
+                    self.max_delay,
+                    random.uniform(self.initial_delay, sleep * self.exp_factor),
+                )
+                print(
+                    f"[{self.now:.1f}] M2M client: Token request failed; Retrying in {sleep}"
+                )
                 await self.timeout(sleep)
 
         print(f"[{self.now:.1f}] M2M client: Token request failed after max retries.")
@@ -136,4 +139,6 @@ class ClientCredentialsClient(Process):
             )
         else:
             print(f"[{self.now:.1f}] M2M client: Cannot call API, no token")
+
+
 # mccole: /cc_client

@@ -21,11 +21,16 @@ def main():
     # Register client application
     client_id = "photo_app"
     client_secret = "secret_xyz"
-    redirect_uri_list = ["https://photoapp.example.com/callback", "https://photo.example.com/mobile"]
+    redirect_uri_list = [
+        "https://photoapp.example.com/callback",
+        "https://photo.example.com/mobile",
+    ]
     invalid_redirect_uri = ""
 
     auth_server.register_client(
-        client_id=client_id, client_secret=client_secret, redirect_uris=redirect_uri_list
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uris=redirect_uri_list,
     )
 
     # Create client for main callback
@@ -50,6 +55,8 @@ def main():
 
     # Run simulation
     env.run(until=20)
+
+
 # mccole: /sim
 
 
