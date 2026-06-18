@@ -13,7 +13,7 @@ def main():
     env = Environment()
 
     # Small queue size to trigger backpressure quickly.
-    broker = BackpressureBroker(env, max_queue_size=5)
+    broker = BackpressureBroker(env, max_queue_size=1)
 
     # Fast publisher.
     fast_publisher = BackpressurePublisher(

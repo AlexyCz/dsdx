@@ -1,0 +1,40 @@
+[0.0] FastPublisher published: Message 1 from FastPublisher (interval: 2.0s)
+[0.0] SlowSubscriber received from 'events': Message 1 from FastPublisher (latency: 0.0)
+[2.0] FastPublisher published: Message 2 from FastPublisher (interval: 2.0s)
+[2.0] SlowSubscriber received from 'events': Message 2 from FastPublisher (latency: 0.0)
+[4.0] FastPublisher published: Message 3 from FastPublisher (interval: 2.0s)
+[4.0] SlowSubscriber received from 'events': Message 3 from FastPublisher (latency: 0.0)
+[6.0] FastPublisher published: Message 4 from FastPublisher (interval: 2.0s)
+[6.0] SlowSubscriber received from 'events': Message 4 from FastPublisher (latency: 0.0)
+[8.0] FastPublisher published: Message 5 from FastPublisher (interval: 2.0s)
+[8.0] SlowSubscriber received from 'events': Message 5 from FastPublisher (latency: 0.0)
+[10.0] FastPublisher published: Message 6 from FastPublisher (interval: 2.0s)
+[10.0] SlowSubscriber received from 'events': Message 6 from FastPublisher (latency: 0.0)
+[12.0] FastPublisher published: Message 7 from FastPublisher (interval: 2.0s)
+[12.0] SlowSubscriber received from 'events': Message 7 from FastPublisher (latency: 0.0)
+[14.0] FastPublisher published: Message 8 from FastPublisher (interval: 2.0s)
+[14.0] SlowSubscriber received from 'events': Message 8 from FastPublisher (latency: 0.0)
+[16.0] FastPublisher published: Message 9 from FastPublisher (interval: 2.0s)
+[16.0] SlowSubscriber received from 'events': Message 9 from FastPublisher (latency: 0.0)
+[18.0] FastPublisher published: Message 10 from FastPublisher (interval: 2.0s)
+[18.0] SlowSubscriber received from 'events': Message 10 from FastPublisher (latency: 0.0)
+[20.0] FastPublisher published: Message 11 from FastPublisher (interval: 2.0s)
+[20.0] SlowSubscriber received from 'events': Message 11 from FastPublisher (latency: 0.0)
+[22.0] FastPublisher published: Message 12 from FastPublisher (interval: 2.0s)
+[22.0] SlowSubscriber received from 'events': Message 12 from FastPublisher (latency: 0.0)
+[24.0] FastPublisher published: Message 13 from FastPublisher (interval: 2.0s)
+[24.0] SlowSubscriber received from 'events': Message 13 from FastPublisher (latency: 0.0)
+[26.0] FastPublisher published: Message 14 from FastPublisher (interval: 2.0s)
+[26.0] SlowSubscriber received from 'events': Message 14 from FastPublisher (latency: 0.0)
+[28.0] FastPublisher published: Message 15 from FastPublisher (interval: 2.0s)
+[28.0] SlowSubscriber received from 'events': Message 15 from FastPublisher (latency: 0.0)
+[30.0] FastPublisher published: Message 16 from FastPublisher (interval: 2.0s)
+[30.0] SlowSubscriber received from 'events': Message 16 from FastPublisher (latency: 0.0)
+
+=== Backpressure Statistics ===
+Messages published: 16
+Messages delivered: 16
+Messages dropped: 0
+Backpressure events: 0
+Final interval: 2.0s
+Messages received: 16

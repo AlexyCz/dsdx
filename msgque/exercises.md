@@ -13,9 +13,13 @@
 
 In `ex_backpressure.py`, L20 has arguments for the back pressure publisher; increase the base interval to `1.0`. In L25, reduce the processing time for the subscriber to match, i.e. `1.0`.
 
+Reference `msgque/ex_backpressure_pubsub_interval_processing_match.out`: We see that the subscriber can process every message that was published. Not a single message dropped given there was never a moment of backpressure hit the subscriber.
+
 Same file, L16 has the call to the broker; change the queue size to `1`.
 
-Run and output with seperate output file names.
+Reference `msgque/ex_backpressure_single_msg_queue.out`: Messages immediately encounter backpressure and forces the publisher to increase time between the next message that is being published. However, unsure if matching interval and processing time values should remain for this single message queue simulation.
+
+
 
 ### Two:
 
