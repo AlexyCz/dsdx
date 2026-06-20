@@ -34,7 +34,8 @@ In `publish()`:L63 within the else block, we acknowledge the message that was dr
 > A subscriber crashes after dequeuing a message but before acknowledging it. In the acknowledgment broker, what happens to that message? Trace through ack_broker.py to find where the timeout fires and what it does. What would happen if the subscriber crashed again on the redelivered message?
 > 
 
-TODO
+In the acknowledgement broker we have the attribute of `pending_acks` that holds all id's that need to be addressed. If the subscriber dequed but didn't call the `acknowledge` method, we will still find the id in the list. Subsequently, the broker executes a redelivery on L51.
+This will keep going until the `pending_acks` list no longer contains this particular dropped `ack_id`.
 
 ### Four:
 
