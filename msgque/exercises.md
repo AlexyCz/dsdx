@@ -49,4 +49,5 @@ TODO
 > The current broker does not persist messages to disk. If the broker process crashes, all queued messages are lost. Describe the changes needed to support durable messaging (messages survive broker restarts). What is the performance cost of each change?
 > 
 
-TODO
+We can do intermittent disk writes to reduce the cost of outputs. Writing out of memory is time costly, so it is an efficiency decision to keep the writes within a designated frequency.
+Another idea would be to add another condition to write out given a certain volume of messages in the queue. I only think of this given a slow down or crashed subscriber, we start gathering a large amount of messages that need addressing, so safety would suggest to write out.
