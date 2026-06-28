@@ -4,6 +4,27 @@
 
 # Publish-Subscribe Message Queue
 
+## Expand
+> Decoupling in a pub-sub system:
+> 
+The focus with an implemention of a publish-subscriber model is that it allows for seperation of concerns by reducing dependencies between those that are sending messages/requests and those are recieving those messages for whatever business logic comes next. "..enables independent development, testing, and scaling" given they are seperate components with specified tasks and concerns.
+
+Low level attribute: using separate queues per subscriber to decouple the multiple recievers of a single message sent by a publisher.
+
+> Drop, Block, and Signal backpressure strategies:
+> 
+
+Drop strategies (rather self-descriptive) allow the system to reject new incoming messages given the current full state of a queue. Naturally, we lose information with this strategy, so it is important to have some mechanisms in place when we are wanting to be aware of every piece of data flowing through.
+Blocking makes the publisher tightly coupled with the subscriber. A publisher will stall any actions until there is space in the queue for another message. If a subscriber is slow, the publisher will be slow.
+Signaling across components can take on a few strategies, explained here are the publisher dynamically adjusting its publishing rates based on queue hold up or failures, and also utilizing prioritization for messages to have a smarter approach to dropping incoming requests.
+
+> Why an acknowledgment-based delivery implementation?
+>
+Firstly, provides a strong feedback loop for message delivery resolution. If a subscriber will have the responsibility of acknowledging a message once processed so that the broker can requeue a dropped message or remove it from needing another acknowledgement check. Critical here given there is a possibility of delivering the same message more than once is idempotency, nth processing is identical to 0th processing.
+
+> Round-robin and partition-based consumer group assignment:
+>
+
 ## Exercises:
 
 ### One:
