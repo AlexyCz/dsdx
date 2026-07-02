@@ -50,6 +50,9 @@ Reference `msgque/ex_backpressure_single_msg_queue.out`: Messages immediately en
 In `priority_backpressure.py`: add new attribute `messages_dropped` that will be a dictionary with priority level as key and count as value.
 In `publish()`:L63 within the else block, we acknowledge the message that was dropped.
 
+Reference `50_50_priority.out`
+Given a subscriber processing interval of 1.5ts and publisher interval of 0.3ts, we see a roughly 60-40 slit of low-high priority messages dropped respectively.
+
 ### Three:
 
 > A subscriber crashes after dequeuing a message but before acknowledging it. In the acknowledgment broker, what happens to that message? Trace through ack_broker.py to find where the timeout fires and what it does. What would happen if the subscriber crashed again on the redelivered message?

@@ -29,10 +29,13 @@ class PriorityPublisher(Process):
             self.message_counter += 1
 
             # Assign priorities: 70% low (5-9), 30% high (0-4)
-            if random.random() < 0.3:
-                priority = random.randint(0, 4)  # High priority
-            else:
-                priority = random.randint(5, 9)  # Low priority
+            # if random.random() < 0.3:
+            #     priority = random.randint(0, 4)  # High priority
+            # else:
+            #     priority = random.randint(5, 9)  # Low priority
+
+            # Assign 50-50 split high-low priority messages:
+            priority = random.randint(0,1)
 
             message = PriorityMessage(
                 topic=self.topic,
@@ -109,6 +112,7 @@ def main():
     print("\n=== Priority Queue Statistics ===")
     print(f"Messages published: {broker.num_published}")
     print(f"Messages delivered: {broker.num_delivered}")
+    print(f"Messages dropped by priority level: {broker.priority_messages_dropped}")
     print(f"Messages received: {subscriber.num_received}")
 
     print("\nReceived by priority:")

@@ -28,6 +28,7 @@ class PriorityBackpressureBroker:
         self.env = env
         self.max_queue_size = max_queue_size
         self.topics: dict[str, list[Queue]] = defaultdict(list)
+        self.priority_messages_dropped: dict[int, int] = defaultdict(int)
         self.num_published = 0
         self.num_delivered = 0
 
@@ -56,6 +57,7 @@ class PriorityBackpressureBroker:
                 # Displace lowest priority item if new message has higher priority
                 bisect.insort(queue._items, message)
                 kept = message is not queue._items[-1]
+                self.priority_messages_dropped[queue._items[-1].priority] += 1
                 queue._items = queue._items[: queue._capacity]
                 if kept:
                     self.num_delivered += 1
